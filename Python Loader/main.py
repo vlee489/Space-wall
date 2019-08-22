@@ -1,8 +1,7 @@
 """
 This file contains the main work for sort and cropping images
 """
-
-import numpy as np
+import traceback
 from pyzbar import pyzbar
 import cv2
 import objects
@@ -14,25 +13,25 @@ from watchdog.events import PatternMatchingEventHandler
 import uuid
 import threading
 
+# Settings
+validID = [2645, 6834]  # Lists valid template IDs
+outputFolder = "output/"  # Picture output folder
+inputFolder = "D:/Git/Space-wall/Image Input"  # Input folder
+templates = "Templates/"  # Template folder
 
-validID = [2645, 6834]
-outputFolder = "output/"
-inputFolder = "D:/Git/Space-wall/Image Input"
-templates = "Templates/"
+# Variables
 threads = list()
+active = False
 
 
 # Used for detecting when a file is added and then processing the file
 class fileHandler(PatternMatchingEventHandler):
     patterns = ["*.png", "*.jpg"]
 
-    def process(self, event):
-        print(event.src_path, event.event_type)
-
     def on_created(self, event):
-        self.process(event)
         # If new image is found then we create a thread to process the image
-        x = threading.Thread(target=processImage(event.src_path))
+        x = ImageProcessor(event.src_path)
+        x.daemon = True
         threads.append(x)
         x.start()
 
@@ -42,7 +41,6 @@ def generateImageID(imageobject):
     try:
         id = uuid.uuid1()
         imageobject.addid(id.hex)
-        print("ID: " + imageobject.ImageID)
         return 1
     except Exception:
         print("==================")
@@ -58,7 +56,6 @@ def readQRCode(imageobject):
         QRImage = cv2.imread(QRImage)
         barcode = pyzbar.decode(QRImage)
         imageobject.addtemplateid(int(re.sub("[^0-9]", "", str(barcode[0].data))))
-        print(imageobject.templateID)
         return 1
     except Exception:
         print("==================")
@@ -69,17 +66,25 @@ def readQRCode(imageobject):
 
 def cutImage(imageobject):
     try:
-        saveName = outputFolder + imageobject.ImageID + '.png'
+        saveName = outputFolder + str(imageobject.templateID) + "/" + imageobject.ImageID + '.png'
+        tempSave = "temp/" + imageobject.ImageID + '.png'
         reference_image = imageobject.image
         mask_image = templates + str(imageobject.templateID) + ".png"
         reference_image = cv2.imread(reference_image)
+
+        # Checks size of file and resize if needed
+        if reference_image.shape != (2381, 3368, 3):
+            reference_image = cv2.resize(reference_image, (3368, 2381), interpolation=cv2.INTER_LINEAR)
+
         mask_image = cv2.imread(mask_image)
         # applying the mask to original image
         masked_image = cv2.bitwise_or(reference_image, mask_image)
+        # Shrink image for better use
+        masked_image = cv2.resize(masked_image, (842, 595), interpolation=cv2.INTER_LINEAR)
         # The resultant image
-        cv2.imwrite(saveName, masked_image)
+        cv2.imwrite(tempSave, masked_image)
 
-        img = Image.open(saveName)
+        img = Image.open(tempSave)
         img = img.convert("RGBA")
         datas = img.getdata()
         newData = []
@@ -94,31 +99,35 @@ def cutImage(imageobject):
         print("==================")
         print("Unable to crop image")
         print("file: " + imageobject.image)
+        traceback.print_exc()
         return 0
 
 
-# Runs all the image recognition and processing
-def processImage(imageLocation):
-    location = imageLocation.replace("\\", "/")
-    proImg = objects.Image(location)
-    if generateImageID(proImg) == 0:
-        return
-    if readQRCode(proImg) == 0:
-        return
-    if proImg.templateID  in validID:
-        if cutImage(proImg) == 0:
+class ImageProcessor(threading.Thread):
+    def __init__(self, imageLocation):
+        super().__init__()
+        self.location = imageLocation.replace("\\", "/")
+
+    def run(self):
+        time.sleep(1)
+        proImg = objects.Image(self.location)
+        if generateImageID(proImg) == 0:
             return
+        if readQRCode(proImg) == 0:
+            return
+        if proImg.templateID in validID:
+            if cutImage(proImg) == 0:
+                return
+        print("---------------")
+        print("Processed Image")
+        print("file: " + proImg.image)
 
 
 if __name__ == '__main__':
-    observer = Observer()
-    observer.schedule(fileHandler(), path=inputFolder)
-    observer.start()
-
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        observer.stop()
-
-    observer.join()
+    if not active:
+        active = True
+        # Starts observers to see if files are added
+        observer = Observer()
+        observer.schedule(fileHandler(), path=inputFolder)
+        observer.start()
+        observer.join()
