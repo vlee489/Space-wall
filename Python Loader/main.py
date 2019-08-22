@@ -11,10 +11,9 @@ from PIL import Image
 import time
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
-import hashlib
-BLOCKSIZE = 65536
+import uuid
 import threading
-import os
+
 
 validID = [2645, 6834]
 outputFolder = "output/"
@@ -40,32 +39,16 @@ class fileHandler(PatternMatchingEventHandler):
 
 # generates ID of image
 def generateImageID(imageobject):
-    """
     try:
-        image = imageobject.image
-        hasher = hashlib.md5()
-        with open(image, 'rb') as afile:
-            buf = afile.read(BLOCKSIZE)
-            while len(buf) > 0:
-                hasher.update(buf)
-                buf = afile.read(BLOCKSIZE)
-        imageobject.addid(hasher.hexdigest())
+        id = uuid.uuid1()
+        imageobject.addid(id.hex)
+        print("ID: " + imageobject.ImageID)
         return 1
     except Exception:
         print("==================")
         print("Unable to generate hash ID")
         print("file: " + imageobject.image)
         return 0
-    """
-    image = imageobject.image
-    hasher = hashlib.md5()
-    with open(image, 'rb' ) as afile:
-        buf = afile.read(BLOCKSIZE)
-        while len(buf) > 0:
-            hasher.update(buf)
-            buf = afile.read(BLOCKSIZE)
-    imageobject.addid(hasher.hexdigest())
-    return 1
 
 
 # Reads the QR code of image from imageObject and adds it to the template ID
@@ -73,15 +56,13 @@ def readQRCode(imageobject):
     try:
         QRImage = imageobject.image
         QRImage = cv2.imread(QRImage)
-        mask = cv2.inRange(QRImage, (0, 0, 0), (200, 200, 200))
-        threshold = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-        inverted = 255 - threshold  # black-in-white
-        barcode = pyzbar.decode(inverted)
+        barcode = pyzbar.decode(QRImage)
         imageobject.addtemplateid(int(re.sub("[^0-9]", "", str(barcode[0].data))))
+        print(imageobject.templateID)
         return 1
     except Exception:
         print("==================")
-        print("Unable to read QR Code")
+        print("Unable to scan QR code")
         print("file: " + imageobject.image)
         return 0
 
@@ -124,7 +105,7 @@ def processImage(imageLocation):
         return
     if readQRCode(proImg) == 0:
         return
-    if proImg.ImageID in validID:
+    if proImg.templateID  in validID:
         if cutImage(proImg) == 0:
             return
 
