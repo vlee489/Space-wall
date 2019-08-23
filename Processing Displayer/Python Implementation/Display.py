@@ -13,10 +13,10 @@ white = (255, 255, 255)
 # Settings
 # Resolution
 validID = [2645]  # Lists valid template IDs
-HEIGHT = 720
-WIDTH = 930
+HEIGHT = 1080 #720
+WIDTH = 1920 #930
 FULLSCREEN = False
-BACKGROUND = "images/background.png"
+BACKGROUND = "images/background.jpg"
 OBJECTS = "D:/Git/Space-wall/Python Loader/output/"
 TEMPSTORAGE = "images/temp/"
 FRAMERATE = 60
@@ -41,7 +41,7 @@ class spaceship1:
 
     def __init__(self, imageLocation):
         self.location = imageLocation
-        self.Hspeed = random.randint(1, 20)
+        self.Hspeed = random.randint(1, 10)
         self.Vspeed = random.randint(-2, 2)
         self.direction = random.choice([True, False])
         if self.direction:
@@ -86,6 +86,17 @@ def cleanUP():
     print("Clean up Finished")
 
 
+class Background(pygame.sprite.Sprite):
+    def __init__(self, image_file, location):
+        pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
+        self.image = pygame.image.load(image_file)
+        self.rect = self.image.get_rect()
+        self.rect.left, self.rect.top = location
+
+
+BackGround = Background(BACKGROUND, [0,0])
+screen.blit(BackGround.image, BackGround.rect)
+
 # Processes images
 class ImageProcessor(threading.Thread):
     image = "NULL"
@@ -104,7 +115,6 @@ class ImageProcessor(threading.Thread):
         toIgnore.remove(self.image)
 
 
-drawings.append(spaceship1("D:/Git/Space-wall/ship 1.png"))
 while True:
     for IDS in validID:
         directory = OBJECTS + str(IDS) + '/'
@@ -116,7 +126,7 @@ while True:
                 x.daemon = True
                 threads.append(x)
                 x.start()
-    screen.fill(white)
+    screen.blit(BackGround.image, BackGround.rect)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             cleanUP()
