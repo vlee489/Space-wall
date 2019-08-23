@@ -14,10 +14,10 @@ import uuid
 import threading
 
 # Settings
-validID = [2645, 6834]  # Lists valid template IDs
-outputFolder = "output/"  # Picture output folder
-inputFolder = "D:/Git/Space-wall/Image Input"  # Input folder
+OUTPUTFOLDER = "output/"  # Picture output folder
+INPUTFOLDER = "D:/Git/Space-wall/Image Input"  # Input folder
 templates = "Templates/"  # Template folder
+validID = [2645, 6834]  # Lists valid template IDs
 
 # Variables
 threads = list()
@@ -66,7 +66,7 @@ def readQRCode(imageobject):
 
 def cutImage(imageobject):
     try:
-        saveName = outputFolder + str(imageobject.templateID) + "/" + imageobject.ImageID + '.png'
+        saveName = OUTPUTFOLDER + str(imageobject.templateID) + "/" + imageobject.ImageID + '.png'
         tempSave = "temp/" + imageobject.ImageID + '.png'
         reference_image = imageobject.image
         mask_image = templates + str(imageobject.templateID) + ".png"
@@ -128,6 +128,6 @@ if __name__ == '__main__':
         active = True
         # Starts observers to see if files are added
         observer = Observer()
-        observer.schedule(fileHandler(), path=inputFolder)
+        observer.schedule(fileHandler(), path=INPUTFOLDER)
         observer.start()
         observer.join()
