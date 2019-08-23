@@ -155,4 +155,11 @@ while True:
             if items not in toRemove:
                 toRemove.append(items)
     pygame.display.update()
-    pygame.time.wait(50)
+    if len(drawings) > 100:
+        pygame.time.wait(10)
+    elif len(drawings) > 50:
+        pygame.time.wait(30)
+    elif len(drawings) > 20:
+        pygame.time.wait(40)
+    else:
+        pygame.time.wait(50)
