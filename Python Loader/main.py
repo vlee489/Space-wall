@@ -80,7 +80,7 @@ def cutImage(imageobject):
         # applying the mask to original image
         masked_image = cv2.bitwise_or(reference_image, mask_image)
         # Shrink image for better use
-        masked_image = cv2.resize(masked_image, (842, 595), interpolation=cv2.INTER_LINEAR)
+        masked_image = cv2.resize(masked_image, (337, 238), interpolation=cv2.INTER_LINEAR)
         # The resultant image
         cv2.imwrite(tempSave, masked_image)
 

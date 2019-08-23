@@ -2,7 +2,7 @@
 Responsible for displaying images on screen
 """
 import threading
-
+import cv2
 import pygame
 import random
 import time
@@ -27,6 +27,7 @@ drawings = []
 threads = list()
 toIgnore = []
 
+
 class spaceship1:
     location = "NONE"
     flame = False
@@ -44,12 +45,19 @@ class spaceship1:
         self.Vspeed = random.randint(-2, 2)
         self.direction = random.choice([True, False])
         if self.direction:
-            self.HLocation = random.randint(50, WIDTH/2)
+            self.HLocation = random.randint(1, int(WIDTH/8))
         else:
-            self.HLocation = random.randint(WIDTH/2, WIDTH)
-        self.VLocation = random.randint(100,HEIGHT-100)
+            self.HLocation = random.randint(int(WIDTH/8), WIDTH)
+            self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
+            (self.h, self.w) = self.img.shape[:2]
+            self.center = (self.w / 2, self.h / 2)
+            self.M = cv2.getRotationMatrix2D(self.center, 180, 1.0)
+            self.rotated180 = cv2.warpAffine(self.img, self.M, (self.w, self.h))
+            cv2.imwrite(self.location, self.rotated180)
+        self.VLocation = random.randint(int(HEIGHT/2)-100, int(HEIGHT/2)+100)
         # ADD IMAGE ROTATION
         self.image = pygame.image.load(self.location)
+        self.image = pygame.transform.rotate(self.image, self.Vspeed*3)
         screen.blit(self.image, (self.HLocation, self.VLocation))
 
     def run(self):
@@ -66,6 +74,19 @@ class spaceship1:
         return False
 
 
+# Deletes all files in temp holding location
+def cleanUP():
+    print("Starting cleanup")
+    count = 0
+    for r, d, f in os.walk(TEMPSTORAGE):
+        for file in f:
+            os.remove(os.path.join(r, file))
+            count = count + 1
+    print("Number of files cleaned up: " + str(count))
+    print("Clean up Finished")
+
+
+# Processes images
 class ImageProcessor(threading.Thread):
     image = "NULL"
     ID = 0
@@ -76,7 +97,7 @@ class ImageProcessor(threading.Thread):
         self.ID = ID
 
     def run(self):
-        time.sleep(5)
+        time.sleep(2)
         os.rename(directory + self.image, TEMPSTORAGE + str(self.ID) + '/' + self.image)
         if self.ID == 2645:
             drawings.append(spaceship1(TEMPSTORAGE + '2645/' + self.image))
@@ -98,10 +119,11 @@ while True:
     screen.fill(white)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
+            cleanUP()
             pygame.quit()
             quit()
     for items in drawings:
         if items.run():
             drawings.remove(items)
     pygame.display.update()
-    pygame.time.wait(10)
+    pygame.time.wait(50)
