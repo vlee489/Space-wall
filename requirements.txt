@@ -4,3 +4,4 @@ pyzbar
 Pillow
 watchdog
 ImageHash
+pygame
