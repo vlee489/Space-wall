@@ -23,5 +23,5 @@ This project consists of 2 part:
     - in  **Python Display** open up the `display.py` file and configure the settings up top
     
  4. Then run each python program of each part
-    - *Python Loader** run `main.py`
+    - **Python Loader** run `main.py`
     - **Python Display** run `display.py`
