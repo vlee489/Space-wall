@@ -26,6 +26,7 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 drawings = []
 threads = list()
 toIgnore = []
+toRemove = []
 
 
 class spaceship1:
@@ -47,7 +48,7 @@ class spaceship1:
         if self.direction:
             self.HLocation = random.randint(1, int(WIDTH/8))
         else:
-            self.HLocation = random.randint(int(WIDTH/8), WIDTH)
+            self.HLocation = random.randint(WIDTH - int(WIDTH/8), WIDTH)
             self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
             (self.h, self.w) = self.img.shape[:2]
             self.center = (self.w / 2, self.h / 2)
@@ -61,10 +62,11 @@ class spaceship1:
         screen.blit(self.image, (self.HLocation, self.VLocation))
 
     def run(self):
-        if self.HLocation > WIDTH or self.HLocation < -100:
+        if self.HLocation > WIDTH+400 or self.HLocation < -500:
             return True
-        if self.VLocation > HEIGHT or self.VLocation < -100:
+        if self.VLocation > HEIGHT+400 or self.VLocation < -500:
             return True
+
         self.VLocation = self.VLocation + self.Vspeed
         if self.direction:
             self.HLocation = self.HLocation + self.Hspeed
@@ -115,6 +117,22 @@ class ImageProcessor(threading.Thread):
         toIgnore.remove(self.image)
 
 
+class GarbageDisposal(threading.Thread):
+    def __init__(self):
+        super().__init__()
+
+    def run(self):
+        while True:
+            for draw in toRemove:
+                drawings.remove(draw)
+                toRemove.remove(draw)
+            time.sleep(1)
+
+
+thread = GarbageDisposal()
+thread.daemon = True
+threads.append(thread)
+thread.start()
 while True:
     for IDS in validID:
         directory = OBJECTS + str(IDS) + '/'
@@ -134,6 +152,7 @@ while True:
             quit()
     for items in drawings:
         if items.run():
-            drawings.remove(items)
+            if items not in toRemove:
+                toRemove.append(items)
     pygame.display.update()
     pygame.time.wait(50)
