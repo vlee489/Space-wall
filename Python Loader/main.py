@@ -64,6 +64,7 @@ def readQRCode(imageobject):
         return 0
 
 
+# Crops the image depending on ID
 def cutImage(imageobject):
     try:
         saveName = OUTPUTFOLDER + str(imageobject.templateID) + "/" + imageobject.ImageID + '.png'
@@ -103,6 +104,7 @@ def cutImage(imageobject):
         return 0
 
 
+# Starts the main process of processing images in its own thread
 class ImageProcessor(threading.Thread):
     def __init__(self, imageLocation):
         super().__init__()
@@ -123,6 +125,7 @@ class ImageProcessor(threading.Thread):
         print("file: " + proImg.image)
 
 
+# Runs the main program
 if __name__ == '__main__':
     if not active:
         active = True

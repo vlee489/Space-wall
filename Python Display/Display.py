@@ -8,13 +8,14 @@ import random
 import time
 import os
 from os.path import isfile, join
+
 white = (255, 255, 255)
 
 # Settings
 # Resolution
 validID = [2645]  # Lists valid template IDs
-HEIGHT = 1080 #720
-WIDTH = 1920 #930
+HEIGHT = 1080  # 720
+WIDTH = 1920  # 930
 FULLSCREEN = False
 BACKGROUND = "images/background.jpg"
 OBJECTS = "D:/Git/Space-wall/Python Loader/output/"
@@ -27,6 +28,8 @@ drawings = []
 threads = list()
 toIgnore = []
 toRemove = []
+clock = pygame.time.Clock()
+fps = 60
 
 
 class spaceship1:
@@ -46,25 +49,26 @@ class spaceship1:
         self.Vspeed = random.randint(-2, 2)
         self.direction = random.choice([True, False])
         if self.direction:
-            self.HLocation = random.randint(1, int(WIDTH/8))
+            self.HLocation = random.randint(1, int(WIDTH / 8))
         else:
-            self.HLocation = random.randint(WIDTH - int(WIDTH/8), WIDTH)
+            self.HLocation = random.randint(WIDTH - int(WIDTH / 8), WIDTH)
             self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
             (self.h, self.w) = self.img.shape[:2]
             self.center = (self.w / 2, self.h / 2)
             self.M = cv2.getRotationMatrix2D(self.center, 180, 1.0)
             self.rotated180 = cv2.warpAffine(self.img, self.M, (self.w, self.h))
             cv2.imwrite(self.location, self.rotated180)
-        self.VLocation = random.randint(int(HEIGHT/2)-100, int(HEIGHT/2)+100)
+        self.VLocation = random.randint(int(HEIGHT / 2) - 100, int(HEIGHT / 2) + 100)
         # ADD IMAGE ROTATION
         self.image = pygame.image.load(self.location)
-        self.image = pygame.transform.rotate(self.image, self.Vspeed*3)
-        screen.blit(self.image, (self.HLocation, self.VLocation))
+        self.image = pygame.transform.rotate(self.image, self.Vspeed * 3)
 
     def run(self):
-        if self.HLocation > WIDTH+400 or self.HLocation < -500:
+        if self.HLocation > WIDTH + 400 or self.HLocation < -500:
+            drawings.remove(self)
             return True
-        if self.VLocation > HEIGHT+400 or self.VLocation < -500:
+        if self.VLocation > HEIGHT + 400 or self.VLocation < -500:
+            drawings.remove(self)
             return True
 
         self.VLocation = self.VLocation + self.Vspeed
@@ -72,8 +76,6 @@ class spaceship1:
             self.HLocation = self.HLocation + self.Hspeed
         else:
             self.HLocation = self.HLocation - self.Hspeed
-        screen.blit(self.image, (self.HLocation, self.VLocation))
-        return False
 
 
 # Deletes all files in temp holding location
@@ -90,14 +92,14 @@ def cleanUP():
 
 class Background(pygame.sprite.Sprite):
     def __init__(self, image_file, location):
-        pygame.sprite.Sprite.__init__(self)  #call Sprite initializer
+        pygame.sprite.Sprite.__init__(self)  # call Sprite initializer
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
 
 
-BackGround = Background(BACKGROUND, [0,0])
-screen.blit(BackGround.image, BackGround.rect)
+BackGround = Background(BACKGROUND, [0, 0])
+
 
 # Processes images
 class ImageProcessor(threading.Thread):
@@ -117,23 +119,8 @@ class ImageProcessor(threading.Thread):
         toIgnore.remove(self.image)
 
 
-class GarbageDisposal(threading.Thread):
-    def __init__(self):
-        super().__init__()
-
-    def run(self):
-        while True:
-            for draw in toRemove:
-                drawings.remove(draw)
-                toRemove.remove(draw)
-            time.sleep(1)
-
-
-thread = GarbageDisposal()
-thread.daemon = True
-threads.append(thread)
-thread.start()
 while True:
+    blit_list = [(BackGround.image, BackGround.rect)]
     for IDS in validID:
         directory = OBJECTS + str(IDS) + '/'
         files = [f for f in os.listdir(directory) if isfile(join(directory, f))]
@@ -144,22 +131,16 @@ while True:
                 x.daemon = True
                 threads.append(x)
                 x.start()
-    screen.blit(BackGround.image, BackGround.rect)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             cleanUP()
             pygame.quit()
             quit()
     for items in drawings:
-        if items.run():
-            if items not in toRemove:
-                toRemove.append(items)
+        items.run()
+        blitLocation = (items.image, (items.HLocation, items.VLocation))
+        blit_list.append(blitLocation)
+    screen.blits(blit_list)
     pygame.display.update()
-    if len(drawings) > 100:
-        pygame.time.wait(10)
-    elif len(drawings) > 50:
-        pygame.time.wait(30)
-    elif len(drawings) > 20:
-        pygame.time.wait(40)
-    else:
-        pygame.time.wait(50)
+    print('tick={}, fps={}'.format(clock.tick(fps), clock.get_fps()))
+
