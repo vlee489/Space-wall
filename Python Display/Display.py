@@ -18,7 +18,7 @@ HEIGHT = 1080  # 720
 WIDTH = 1920  # 930
 FULLSCREEN = False
 BACKGROUND = "images/background.jpg"
-OBJECTS = "D:/Git/Space-wall/Python Loader/output/"
+OBJECTS = "D:/Git/Space-wall/Python Loader/output/"  # Point to the output folder of the python Loader
 TEMPSTORAGE = "images/temp/"
 FRAMERATE = 60
 

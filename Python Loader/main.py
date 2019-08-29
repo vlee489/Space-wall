@@ -1,6 +1,7 @@
 """
 This file contains the main work for sort and cropping images
 """
+import os
 import traceback
 from pyzbar import pyzbar
 import cv2
@@ -12,12 +13,14 @@ from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 import uuid
 import threading
+import atexit
 
 # Settings
 OUTPUTFOLDER = "output/"  # Picture output folder
 INPUTFOLDER = "D:/Git/Space-wall/Image Input"  # Input folder
 templates = "Templates/"  # Template folder
 validID = [2645, 6834]  # Lists valid template IDs
+TEMP = "temp/"  # Used for temp holding
 
 # Variables
 threads = list()
@@ -68,7 +71,7 @@ def readQRCode(imageobject):
 def cutImage(imageobject):
     try:
         saveName = OUTPUTFOLDER + str(imageobject.templateID) + "/" + imageobject.ImageID + '.png'
-        tempSave = "temp/" + imageobject.ImageID + '.png'
+        tempSave = TEMP + imageobject.ImageID + '.png'
         reference_image = imageobject.image
         mask_image = templates + str(imageobject.templateID) + ".png"
         reference_image = cv2.imread(reference_image)
@@ -104,6 +107,18 @@ def cutImage(imageobject):
         return 0
 
 
+# Cleans up temp files on closing
+def cleanUP():
+    print("Starting cleanup")
+    count = 0
+    for r, d, f in os.walk(TEMP):
+        for file in f:
+            os.remove(os.path.join(r, file))
+            count = count + 1
+    print("Number of files cleaned up: " + str(count))
+    print("Clean up Finished")
+
+
 # Starts the main process of processing images in its own thread
 class ImageProcessor(threading.Thread):
     def __init__(self, imageLocation):
@@ -126,6 +141,7 @@ class ImageProcessor(threading.Thread):
 
 
 # Runs the main program
+atexit.register(cleanUP)  # BROKEN!
 if __name__ == '__main__':
     if not active:
         active = True
