@@ -1,6 +1,7 @@
 """
 Responsible for displaying images on screen
 """
+import errno
 import threading
 import cv2
 import pygame
@@ -20,7 +21,7 @@ FULLSCREEN = False
 BACKGROUND = "/Users/vlee489/Desktop/Space-wall/Python Display/images/background.jpg"
 OBJECTS = "/Users/vlee489/Desktop/Space-wall/Python Loader/output/"  # Point to the output folder of the python Loader
 TEMPSTORAGE = "images/temp/"
-FRAMERATE = 60
+FRAMERATE = 15
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -29,7 +30,6 @@ threads = list()
 toIgnore = []
 toRemove = []
 clock = pygame.time.get_ticks()
-fps = 60
 
 
 class spaceship1:
@@ -271,46 +271,69 @@ class Background(pygame.sprite.Sprite):
         self.image = pygame.image.load(image_file)
         self.rect = self.image.get_rect()
         self.rect.left, self.rect.top = location
-        print("Background done")
+
+
+Background_object = Background(BACKGROUND, [0, 0])
+
 
 # Processes images
 class ImageProcessor(threading.Thread):
     image = "NULL"
     ID = 0
 
-    def __init__(self, image, ID):
+    def __init__(self, image, ID, image_directory, available_drawings):
         super().__init__()
         self.image = image
         self.ID = ID
+        self.image_directory = image_directory
+        self.available_drawings = available_drawings
 
     def run(self):
         time.sleep(2)
-        os.rename(directory + self.image, TEMPSTORAGE + str(self.ID) + '/' + self.image)
+        os.rename(self.image_directory + self.image, TEMPSTORAGE + str(self.ID) + '/' + self.image)
         if self.ID == 2645:
-            drawings.append(spaceship1(TEMPSTORAGE + '2645/' + self.image))
+            self.available_drawings.append(spaceship1(TEMPSTORAGE + '2645/' + self.image))
         if self.ID == 2171:
-            drawings.append(spaceman(TEMPSTORAGE + '2171/' + self.image))
+            self.available_drawings.append(spaceman(TEMPSTORAGE + '2171/' + self.image))
         if self.ID == 3001:
-            drawings.append(alien(TEMPSTORAGE + '3001/' + self.image))
+            self.available_drawings.append(alien(TEMPSTORAGE + '3001/' + self.image))
         if self.ID == 1836:
-            drawings.append(star(TEMPSTORAGE + '1836/' + self.image))
+            self.available_drawings.append(star(TEMPSTORAGE + '1836/' + self.image))
         if self.ID == 1273:
-            drawings.append(ShootingStar(TEMPSTORAGE + '1273/' + self.image))
+            self.available_drawings.append(ShootingStar(TEMPSTORAGE + '1273/' + self.image))
         if self.ID == 2018:
-            drawings.append(ufo(TEMPSTORAGE + '2018/' + self.image))
+            self.available_drawings.append(ufo(TEMPSTORAGE + '2018/' + self.image))
         toIgnore.remove(self.image)
 
 
-BackGround = Background(BACKGROUND, [0, 0])
+def create_folder(dir_path):
+    try:
+        os.makedirs(dir_path)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+
+
+def setup():
+    for validID in validIDs:
+        create_folder(f"{TEMPSTORAGE}{validID}")
+
+
+setup()
+clock_1 = pygame.time.Clock()
+
 while True:
-    blit_list = [(BackGround.image, BackGround.rect)]
-    for IDS in validID:
+    ticks = pygame.time.get_ticks()
+    clock_1.tick(FRAMERATE)
+    drawings_blits = []
+    blit_list = [(Background_object.image, Background_object.rect)]
+    for IDS in validIDs:
         directory = OBJECTS + str(IDS) + '/'
-        files = [f for f in os.listdir(directory) if isfile(join(directory, f))]
+        files = [f for f in os.listdir(directory) if isfile(join(directory, f)) and f.split(".")[1] in ["jpg", "png"]]
         for i in files:
             if i not in toIgnore:
                 toIgnore.append(i)
-                x = ImageProcessor(i, IDS)
+                x = ImageProcessor(i, IDS, directory, drawings)
                 x.daemon = True
                 threads.append(x)
                 x.start()
