@@ -45,7 +45,7 @@ def generateImageID(imageobject):
         id = uuid.uuid1()
         imageobject.addid(id.hex)
         return 1
-    except Exception:
+    except Exception:  # TODO : This exception is far too broad
         print("==================")
         print("Unable to generate hash ID")
         print("file: " + imageobject.image)
@@ -54,17 +54,21 @@ def generateImageID(imageobject):
 
 # Reads the QR code of image from imageObject and adds it to the template ID
 def readQRCode(imageobject):
-    try:
-        QRImage = imageobject.image
-        QRImage = cv2.imread(QRImage)
-        barcode = pyzbar.decode(QRImage)
-        imageobject.addtemplateid(int(re.sub("[^0-9]", "", str(barcode[0].data))))
-        return 1
-    except Exception:
+    #try:
+    # Copied straight from https://stackoverflow.com/questions/50080949/qr-code-detection-from-pyzbar-with-camera-image
+    QRImage = imageobject.image
+    QRImage = cv2.imread(QRImage)
+    mask = cv2.inRange(QRImage, (0, 0, 0), (200, 200, 200))
+    thresholded = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    inverted = 255 - thresholded  # black-in-white
+    barcode = pyzbar.decode(inverted)
+    if not barcode:
         print("==================")
-        print("Unable to scan QR code")
+        print("Unable to find QR code")
         print("file: " + imageobject.image)
         return 0
+    imageobject.addtemplateid(int(re.sub("[^0-9]", "", str(barcode[0].data))))
+    return 1
 
 
 # Crops the image depending on ID
@@ -99,7 +103,7 @@ def cutImage(imageobject):
                 newData.append(item)
         img.putdata(newData)
         img.save(saveName, "PNG")
-    except Exception:
+    except Exception:  # TODO : This exception is far too broad
         print("==================")
         print("Unable to crop image")
         print("file: " + imageobject.image)
