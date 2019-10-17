@@ -17,10 +17,10 @@ import atexit
 
 # Settings
 OUTPUTFOLDER = "output/"  # Picture output folder
-INPUTFOLDER = "D:/Git/Space-wall/Image Input"  # Input folder
-templates = "Templates/"  # Template folder
-validID = [2645, 6834]  # Lists valid template IDs
+INPUTFOLDER = "/Users/vlee489/Desktop/Space-wall/Image Input"  # Input folder
 TEMP = "temp/"  # Used for temp holding
+templates = "Templates/"  # Template folder
+validID = [1836, 2018, 2171, 2173, 2645, 3001]  # Lists valid template IDs
 
 # Variables
 threads = list()
@@ -29,7 +29,7 @@ active = False
 
 # Used for detecting when a file is added and then processing the file
 class fileHandler(PatternMatchingEventHandler):
-    patterns = ["*.png", "*.jpg"]
+    patterns = ["*.png", "*.jpg", "*.JPEG"]
 
     def on_created(self, event):
         # If new image is found then we create a thread to process the image
