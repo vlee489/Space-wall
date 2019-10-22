@@ -14,13 +14,18 @@ from watchdog.events import PatternMatchingEventHandler
 import uuid
 import threading
 import atexit
+import numpy as np
 
 # Settings
 OUTPUTFOLDER = "output/"  # Picture output folder
-INPUTFOLDER = "/Users/vlee489/Desktop/Space-wall/Image Input"  # Input folder
+INPUTFOLDER = "D:/Git/Space-wall/Image Input"  # Input folder
 TEMP = "temp/"  # Used for temp holding
+THRESHOLD = 10000  # Number of points used to allign image
 templates = "Templates/"  # Template folder
-validID = [1836, 2018, 2171, 2173, 2645, 3001]  # Lists valid template IDs
+validID = [1836, 2018, 2171, 1273, 2645, 3001]  # Lists valid template IDs
+alignmentTemplate = 'Templates/alignmentTemplate.png'
+imgReference = cv2.imread(alignmentTemplate, cv2.IMREAD_COLOR)
+QRCodeMask = 'Templates/QRCodeCOver.png'
 
 # Variables
 threads = list()
@@ -39,6 +44,61 @@ class fileHandler(PatternMatchingEventHandler):
         x.start()
 
 
+def alignImage(imageobject, imReference):
+    try:
+        # derived from https://www.learnopencv.com/image-alignment-feature-based-using-opencv-c-python/
+        imOriginal = cv2.imread(imageobject.image, cv2.IMREAD_COLOR)
+
+        # Convert images to grayscale
+        im1Gray = cv2.cvtColor(imOriginal, cv2.COLOR_BGR2GRAY)
+        im2Gray = cv2.cvtColor(imReference, cv2.COLOR_BGR2GRAY)
+
+        # Detect ORB features and compute descriptors.
+        orb = cv2.ORB_create(THRESHOLD)
+        keypoints1, descriptors1 = orb.detectAndCompute(im1Gray, None)
+        keypoints2, descriptors2 = orb.detectAndCompute(im2Gray, None)
+
+        # Match features.
+        matcher = cv2.DescriptorMatcher_create(cv2.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING)
+        matches = matcher.match(descriptors1, descriptors2, None)
+
+        # Sort matches by score
+        matches.sort(key=lambda x: x.distance, reverse=False)
+
+        # Draw top matches and save them, cause why not
+        imMatches = cv2.drawMatches(imOriginal, keypoints1, imReference, keypoints2, matches, None)
+        fileName = ('matchPoints/' + imageobject.ImageID + 'Matches' + '.PNG')
+        cv2.imwrite(fileName, imMatches)
+
+        # Remove not so good matches
+        numGoodMatches = int(len(matches) * 0.1)
+        matches = matches[:numGoodMatches]
+
+        # Extract location of good matches
+        points1 = np.zeros((len(matches), 2), dtype=np.float32)
+        points2 = np.zeros((len(matches), 2), dtype=np.float32)
+
+        for i, match in enumerate(matches):
+            points1[i, :] = keypoints1[match.queryIdx].pt
+            points2[i, :] = keypoints2[match.trainIdx].pt
+
+        # Find homography
+        h, mask = cv2.findHomography(points1, points2, cv2.RANSAC)
+
+        # Use homography
+        height, width, channels = imReference.shape
+        im1Reg = cv2.warpPerspective(imOriginal, h, (width, height))
+
+        cv2.imwrite(imageobject.image, im1Reg)
+
+    except Exception:  # TODO : This exception is far too broad
+        print("==================")
+        print("Unable to Align Image")
+        print("file: " + imageobject.image)
+        traceback.print_exc()
+        return 0
+
+
 # generates ID of image
 def generateImageID(imageobject):
     try:
@@ -49,6 +109,7 @@ def generateImageID(imageobject):
         print("==================")
         print("Unable to generate hash ID")
         print("file: " + imageobject.image)
+        traceback.print_exc()
         return 0
 
 
@@ -58,10 +119,15 @@ def readQRCode(imageobject):
     # Copied straight from https://stackoverflow.com/questions/50080949/qr-code-detection-from-pyzbar-with-camera-image
     QRImage = imageobject.image
     QRImage = cv2.imread(QRImage)
-    mask = cv2.inRange(QRImage, (0, 0, 0), (200, 200, 200))
-    thresholded = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
-    inverted = 255 - thresholded  # black-in-white
-    barcode = pyzbar.decode(inverted)
+    mask_image = cv2.imread(QRCodeMask)
+    if QRImage.shape != (2381, 3368, 3):
+        QRImage = cv2.resize(QRImage, (3368, 2381), interpolation=cv2.INTER_LINEAR)
+    masked_image = cv2.bitwise_or(QRImage, mask_image)
+    tempSave = TEMP + imageobject.ImageID + 'QRCODE' + '.png'
+    cv2.imwrite(tempSave, masked_image)
+    QRImage = cv2.imread(tempSave)
+    barcode = pyzbar.decode(QRImage)
+    os.remove(tempSave)
     if not barcode:
         print("==================")
         print("Unable to find QR code")
@@ -103,6 +169,7 @@ def cutImage(imageobject):
                 newData.append(item)
         img.putdata(newData)
         img.save(saveName, "PNG")
+        os.remove(tempSave)
     except Exception:  # TODO : This exception is far too broad
         print("==================")
         print("Unable to crop image")
@@ -132,7 +199,10 @@ class ImageProcessor(threading.Thread):
     def run(self):
         time.sleep(1)
         proImg = objects.Image(self.location)
+        time.sleep(1)
         if generateImageID(proImg) == 0:
+            return
+        if alignImage(proImg, imgReference) == 0:
             return
         if readQRCode(proImg) == 0:
             return

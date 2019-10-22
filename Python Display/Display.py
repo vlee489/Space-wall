@@ -14,12 +14,12 @@ white = (255, 255, 255)
 
 # Settings
 # Resolution
-validID = [1836, 2018, 2171, 2173, 2645, 3001]  # Lists valid template IDs
+validIDs = [1836, 2018, 2171, 1273, 2645, 3001]  # Lists valid template IDs
 HEIGHT = 720  # 720
 WIDTH = 1280  # 930
 FULLSCREEN = False
-BACKGROUND = "/Users/vlee489/Desktop/Space-wall/Python Display/images/background.jpg"
-OBJECTS = "/Users/vlee489/Desktop/Space-wall/Python Loader/output/"  # Point to the output folder of the python Loader
+BACKGROUND = "images/background.jpg"
+OBJECTS = "D:/Git/Space-wall/Python Loader/output/"  # Point to the output folder of the python Loader
 TEMPSTORAGE = "images/temp/"
 FRAMERATE = 15
 
@@ -94,12 +94,6 @@ class ufo:
             self.HLocation = random.randint(1, int(WIDTH / 8))
         else:
             self.HLocation = random.randint(WIDTH - int(WIDTH / 8), WIDTH)
-            self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
-            (self.h, self.w) = self.img.shape[:2]
-            self.center = (self.w / 2, self.h / 2)
-            self.M = cv2.getRotationMatrix2D(self.center, 180, 1.0)
-            self.rotated180 = cv2.warpAffine(self.img, self.M, (self.w, self.h))
-            cv2.imwrite(self.location, self.rotated180)
         self.VLocation = random.randint(int(HEIGHT / 2) - 100, int(HEIGHT / 2) + 100)
         # ADD IMAGE ROTATION
         self.image = pygame.image.load(self.location)
@@ -126,17 +120,18 @@ class star:
     def __init__(self, imageLocation):
         self.location = imageLocation
         self.HLocation = random.randint(30, WIDTH-30)
-        self.VLocation = random.randint(int(HEIGHT / 2) - 100, int(HEIGHT / 2) + 100)
+        self.VLocation = random.randint(int(HEIGHT / 2), int(HEIGHT / 2) + 100)
         self.flicker = random.randint(1, 5)
         self.image = pygame.image.load(self.location)
         self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
         (self.h, self.w) = self.img.shape[:2]
-        self.imageTime = random.randint(300000, 500000)
+        self.imageTime = random.randint(30000, 50000)
         self.imageTime = self.imageTime + clock
         self.image = pygame.image.load(self.location)
+        print(self.VLocation)
 
     def run(self):
-        if self.imageTime < clock:
+        if clock > self.imageTime:
             drawings.remove(self)
             return True
 
@@ -159,12 +154,6 @@ class alien:
             self.HLocation = random.randint(1, int(WIDTH / 8))
         else:
             self.HLocation = random.randint(WIDTH - int(WIDTH / 8), WIDTH)
-            self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
-            (self.h, self.w) = self.img.shape[:2]
-            self.center = (self.w / 2, self.h / 2)
-            self.M = cv2.getRotationMatrix2D(self.center, 180, 1.0)
-            self.rotated180 = cv2.warpAffine(self.img, self.M, (self.w, self.h))
-            cv2.imwrite(self.location, self.rotated180)
         self.VLocation = random.randint(int(HEIGHT / 2) - 100, int(HEIGHT / 2) + 100)
         # ADD IMAGE ROTATION
         self.image = pygame.image.load(self.location)
@@ -217,24 +206,14 @@ class ShootingStar:
     image = None
     Hspeed = 20
     Vspeed = 0
-    direction = True
 
     def __init__(self, imageLocation):
         self.location = imageLocation
         self.Hspeed = random.randint(1, 10)
         self.Vspeed = random.randint(-3, 3)
         self.direction = random.choice([True, False])
-        if self.direction:
-            self.HLocation = random.randint(1, int(WIDTH / 8))
-        else:
-            self.HLocation = random.randint(WIDTH - int(WIDTH / 8), WIDTH)
-            self.img = cv2.imread(imageLocation, cv2.IMREAD_UNCHANGED)
-            (self.h, self.w) = self.img.shape[:2]
-            self.center = (self.w / 2, self.h / 2)
-            self.M = cv2.getRotationMatrix2D(self.center, 180, 1.0)
-            self.rotated180 = cv2.warpAffine(self.img, self.M, (self.w, self.h))
-            cv2.imwrite(self.location, self.rotated180)
-        self.VLocation = random.randint(int(HEIGHT / 2) - 100, int(HEIGHT / 2) + 100)
+        self.HLocation = random.randint(1, int(WIDTH / 8))
+        self.VLocation = random.randint(int(HEIGHT / 2) - 300, int(HEIGHT / 2) + 200)
         # ADD IMAGE ROTATION
         self.image = pygame.image.load(self.location)
         self.image = pygame.transform.rotate(self.image, self.Vspeed * 3)
@@ -248,10 +227,7 @@ class ShootingStar:
             return True
 
         self.VLocation = self.VLocation + self.Vspeed
-        if self.direction:
-            self.HLocation = self.HLocation + self.Hspeed
-        else:
-            self.HLocation = self.HLocation - self.Hspeed
+        self.HLocation = self.HLocation + self.Hspeed
 
 # Deletes all files in temp holding location
 def cleanUP():
@@ -321,8 +297,9 @@ def setup():
 
 setup()
 clock_1 = pygame.time.Clock()
-
+cleanUP()
 while True:
+    clock = pygame.time.get_ticks()
     ticks = pygame.time.get_ticks()
     clock_1.tick(FRAMERATE)
     drawings_blits = []

@@ -5,4 +5,4 @@ Pillow
 watchdog
 ImageHash
 pygame
-zbar
+numpy
